@@ -1,41 +1,65 @@
 package com.chaottic.template;
 
 import org.lwjgl.system.MemoryStack;
-
-import java.util.Objects;
+import org.lwjgl.vulkan.VkInstance;
 
 import static org.lwjgl.glfw.Callbacks.glfwFreeCallbacks;
 import static org.lwjgl.glfw.GLFW.*;
+import static org.lwjgl.glfw.GLFWVulkan.glfwCreateWindowSurface;
 import static org.lwjgl.system.MemoryUtil.NULL;
 import static org.lwjgl.system.MemoryUtil.memAddress;
+import static org.lwjgl.vulkan.KHRSurface.vkDestroySurfaceKHR;
+import static org.lwjgl.vulkan.VK10.VK_NULL_HANDLE;
 
 public final class Window {
-    private final long window;
+    private final VkInstance instance;
 
-    {
+    private final long window;
+    private final long surface;
+
+    public Window(Vulkan vulkan) {
         glfwDefaultWindowHints();
-        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
-        glfwWindowHint(GLFW_CONTEXT_RELEASE_BEHAVIOR, GLFW_RELEASE_BEHAVIOR_FLUSH);
+        glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 
         var monitor = glfwGetPrimaryMonitor();
-        var vidMode = Objects.requireNonNull(glfwGetVideoMode(monitor));
+        var vidMode = glfwGetVideoMode(monitor);
+
+        if (vidMode == null) {
+            vulkan.destroy();
+            glfwTerminate();
+            throw new RuntimeException("Failed to get Video mode for primary monitor");
+        }
 
         try (MemoryStack memoryStack = MemoryStack.stackPush()) {
             var buffer = memoryStack.callocInt(4);
 
-            nglfwGetMonitorWorkarea(monitor, memAddress(buffer), memAddress(buffer) + 4, memAddress(buffer) + 8, memAddress(buffer) + 12);
+            nglfwGetMonitorWorkarea(monitor,
+                    memAddress(buffer),
+                    memAddress(buffer) + 4,
+                    memAddress(buffer) + 8,
+                    memAddress(buffer) + 12);
 
             var width = buffer.get(2) / 2;
             var height = buffer.get(3) / 2;
 
             if ((window = glfwCreateWindow(width, height, "Template", NULL, NULL)) == NULL) {
-                throw new RuntimeException();
+                vulkan.destroy();
+                glfwTerminate();
+                throw new RuntimeException("Failed to create a GLFW Window");
             }
 
             glfwSetWindowPos(window, (buffer.get(2) - width) / 2, (buffer.get(3) - height) / 2);
 
-            glfwMakeContextCurrent(window);
+            var surfaceBuffer = memoryStack.callocLong(1);
+
+            if (glfwCreateWindowSurface(instance = vulkan.getInstance(), window, null, surfaceBuffer) == VK_NULL_HANDLE) {
+                glfwDestroyWindow(window);
+                vulkan.destroy();
+                glfwTerminate();
+                throw new RuntimeException("Failed to create a Vulkan surface");
+            }
+
+            surface = surfaceBuffer.get();
         }
     }
 
@@ -48,6 +72,7 @@ public final class Window {
     }
 
     public void destroy() {
+        vkDestroySurfaceKHR(instance, surface, null);
         glfwFreeCallbacks(window);
         glfwDestroyWindow(window);
     }

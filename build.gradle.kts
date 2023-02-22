@@ -4,6 +4,7 @@ import org.lwjgl.Lwjgl.Module.*
 plugins {
     id("java")
     id("org.lwjgl.plugin") version "0.0.30"
+    id("io.freefair.lombok") version "6.6.2"
 }
 
 group = "com.chaottic"

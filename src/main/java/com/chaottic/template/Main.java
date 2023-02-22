@@ -1,6 +1,7 @@
 package com.chaottic.template;
 
 import static org.lwjgl.glfw.GLFW.*;
+import static org.lwjgl.glfw.GLFWVulkan.glfwVulkanSupported;
 
 public final class Main {
 
@@ -10,10 +11,16 @@ public final class Main {
     public static void main(String[] args) {
 
         if (!glfwInit()) {
-            throw new RuntimeException();
+            throw new RuntimeException("Failed to initialize GLFW");
         }
 
-        var window = new Window();
+        if (!glfwVulkanSupported()) {
+            glfwTerminate();
+            throw new RuntimeException("Vulkan isn't supported");
+        }
+
+        var vulkan = new Vulkan();
+        var window = new Window(vulkan);
 
         while (!window.shouldClose()) {
             window.swapBuffers();
@@ -21,6 +28,7 @@ public final class Main {
         }
 
         window.destroy();
+        vulkan.destroy();
 
         glfwTerminate();
     }
