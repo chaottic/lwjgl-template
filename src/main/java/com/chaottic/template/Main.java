@@ -23,7 +23,6 @@ public final class Main {
         var window = new Window(vulkan);
 
         while (!window.shouldClose()) {
-            window.swapBuffers();
             glfwPollEvents();
         }
 

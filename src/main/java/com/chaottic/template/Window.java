@@ -9,7 +9,7 @@ import static org.lwjgl.glfw.GLFWVulkan.glfwCreateWindowSurface;
 import static org.lwjgl.system.MemoryUtil.NULL;
 import static org.lwjgl.system.MemoryUtil.memAddress;
 import static org.lwjgl.vulkan.KHRSurface.vkDestroySurfaceKHR;
-import static org.lwjgl.vulkan.VK10.VK_NULL_HANDLE;
+import static org.lwjgl.vulkan.VK10.VK_SUCCESS;
 
 public final class Window {
     private final VkInstance instance;
@@ -52,7 +52,7 @@ public final class Window {
 
             var surfaceBuffer = memoryStack.callocLong(1);
 
-            if (glfwCreateWindowSurface(instance = vulkan.getInstance(), window, null, surfaceBuffer) == VK_NULL_HANDLE) {
+            if (glfwCreateWindowSurface(instance = vulkan.getInstance(), window, null, surfaceBuffer) != VK_SUCCESS) {
                 glfwDestroyWindow(window);
                 vulkan.destroy();
                 glfwTerminate();
@@ -65,10 +65,6 @@ public final class Window {
 
     public boolean shouldClose() {
         return glfwWindowShouldClose(window);
-    }
-
-    public void swapBuffers() {
-        glfwSwapBuffers(window);
     }
 
     public void destroy() {
